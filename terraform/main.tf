@@ -9,71 +9,116 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"    # change if you prefer another region
+  region = "us-east-1"
 }
 
-# ---- Security group allowing SSH and HTTP ----
-resource "aws_security_group" "web_sg" {
-  name        = "ec2_test_sg"
-  description = "Allow SSH and HTTP"
-  vpc_id      = data.aws_vpc.default.id
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# ---- Use the default VPC & subnet for simplicity ----
-data "aws_vpc" "default" {
-  default = true
-}
-
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
-
-
-# ---- EC2 Instance ----
-resource "aws_instance" "test_instance" {
-  ami                    = "ami-0c02fb55956c7d316"   # Amazon Linux 2 (us-east-1)
-  instance_type          = "t3.micro"
-  subnet_id = tolist(data.aws_subnets.default.ids)[0]
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name               = "terraform-test-key"        # replace with your existing key pair name
+# -----------------------------
+# VPC
+# -----------------------------
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/24" // 256 hosts, 128 hosts per subnet
+  enable_dns_support   = true
+  enable_dns_hostnames = true
 
   tags = {
-    Name = "TerraformEC2-Test"
+    Name = "460VPC"
   }
 }
 
-# ---- Elastic IP ----
-resource "aws_eip" "elastic_ip" {
-  instance = aws_instance.test_instance.id
-  domain   = "vpc"
+# -----------------------------
+# Public Subnet (10.0.0.0/25)
+# -----------------------------
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.0.0/25"
+  map_public_ip_on_launch = true
+  availability_zone       = "us-east-1a"
 
   tags = {
-    Name = "EC2-Test-EIP"
+    Name = "460VPC-subnet-public1-us-east-1a"
   }
 }
+
+# -----------------------------
+# Private Subnet (10.0.0.128/25)
+# -----------------------------
+resource "aws_subnet" "private" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.0.128/25"
+  availability_zone = "us-east-1b"
+
+  tags = {
+    Name = "460VPC-subnet-private1-us-east-1b"
+  }
+}
+
+# -----------------------------
+# Internet Gateway (for Public)
+# -----------------------------
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "460VPC-igw"
+  }
+}
+
+# -----------------------------
+# Route Tables
+# -----------------------------
+# Public route table
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "460VPC-rtb-public"
+  }
+}
+
+# Private route table (local-only)
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  # AWS automatically provides a local route,
+  # so we don't add any routes manually yet
+
+  tags = {
+    Name = "460VPC-rtb-private1-us-east-1b"
+  }
+}
+
+# -----------------------------
+# Route Table Associations
+# -----------------------------
+resource "aws_route_table_association" "public_assoc" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "private_assoc" {
+  subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
+}
+
+
+
+/*
+# -----------------------------
+# Example Public EC2
+# -----------------------------
+resource "aws_instance" "public_ec2" {
+  ami                         = "ami-0e6a50b0059fd2cc3" # Ubuntu 24.04 LTS
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public.id
+  associate_public_ip_address  = true
+
+  tags = {
+    Name = "PublicInstance"
+  }
+}
+*/
