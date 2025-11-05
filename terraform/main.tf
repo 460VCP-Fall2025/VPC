@@ -88,7 +88,7 @@ resource "aws_route_table" "private" {
   # so we don't add any routes manually yet
 
   tags = {
-    Name = "460VPC-rtb-private1-us-east-1b"
+    Name = "460VPC-rtb-private"
   }
 }
 
@@ -106,21 +106,33 @@ resource "aws_route_table_association" "private_assoc" {
 }
 
 
-
-# -----------------------------
-# Security Groups
-# -----------------------------
-# Public SG: allow SSH from anywhere and allow all outbound
-resource "aws_security_group" "public_sg" {
-  name        = "460VPC-public-sg"
-  description = "Allow SSH inbound from anywhere for public instances"
+# VPN SG
+resource "aws_security_group" "vpn_sg" {
+  name        = "460VPC-vpn-sg"
+  description = "Allow SSH, HTTPS, and ICMP inbound for VPN instance"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "SSH"
+    description = "SSH (TCP 22)"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS (TCP 443)"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "ICMP (ping)"
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -132,29 +144,80 @@ resource "aws_security_group" "public_sg" {
   }
 
   tags = {
-    Name = "460VPC-public-sg"
+    Name = "460VPC-vpn-sg"
   }
 }
 
-# Private SG: allow SSH only from the public SG and allow all outbound
-resource "aws_security_group" "private_sg" {
-  name        = "460VPC-private-sg"
-  description = "Allow SSH from public instances and internal traffic"
+# NAT SG: allow communication only between VPN-EC2 and private subnet
+resource "aws_security_group" "nat_sg" {
+  name        = "460VPC-nat-sg"
+  description = "Allow communication only between VPN-EC2 and private subnet"
   vpc_id      = aws_vpc.main.id
 
+  # Inbound: accept from VPN-EC2 and private subnet only
   ingress {
-    description      = "SSH from public instances"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    security_groups  = [aws_security_group.public_sg.id]
+    description     = "All traffic from VPN-EC2"
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.vpn_sg.id]
   }
 
-  egress {
+  ingress {
+    description = "All traffic from private subnet"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [aws_subnet.private.cidr_block]
+  }
+
+  # Outbound: send only to VPN-EC2 and private subnet
+  egress {
+    description     = "All traffic to VPN-EC2"
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.vpn_sg.id]
+  }
+
+  egress {
+    description = "All traffic to private subnet"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [aws_subnet.private.cidr_block]
+  }
+
+  tags = {
+    Name = "460VPC-nat-sg"
+  }
+}
+ 
+# -----------------------------
+# Private SG: allow only NAT-EC2 communication
+# -----------------------------
+resource "aws_security_group" "private_sg" {
+  name        = "460VPC-private-sg"
+  description = "Allow traffic only between NAT-EC2 and private instance"
+  vpc_id      = aws_vpc.main.id
+
+  # Inbound: accept any protocol from NAT-EC2 (through its SG)
+  ingress {
+    description     = "All traffic from NAT-EC2"
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.nat_sg.id]
+  }
+  
+
+  # Outbound: allow only to NAT-EC2
+  egress {
+    description     = "All traffic to NAT-EC2"
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.nat_sg.id]
   }
 
   tags = {
@@ -165,34 +228,84 @@ resource "aws_security_group" "private_sg" {
 # -----------------------------
 # EC2 Instances
 # -----------------------------
-# Two public t2.micro instances
-resource "aws_instance" "public" {
-  count                     = 2
-  ami                       = data.aws_ami.ubuntu.id
-  instance_type             = "t3.micro"
-  subnet_id                 = aws_subnet.public.id
+# Two public t3.micro instances
+
+# VPN EC2
+resource "aws_instance" "vpn_ec2" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
-  vpc_security_group_ids    = [aws_security_group.public_sg.id]
+  key_name                    = aws_key_pair.vpn_keypair.key_name
+  vpc_security_group_ids      = [aws_security_group.vpn_sg.id]
 
   tags = {
-    Name = "PublicInstance-${count.index + 1}"
+    Name = "VPN-EC2"
+  }
+}
+
+#output ssh command for VPN-EC2 upon creation
+output "vpn_ec2_ssh_command" {
+  description = "SSH command for VPN-EC2"
+  value       = "ssh -i vpn-keypair.pem ubuntu@${aws_instance.vpn_ec2.public_ip}"
+}
+
+
+# NAT EC2
+resource "aws_instance" "nat_ec2" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public.id
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.nat_sg.id]
+
+  tags = {
+    Name = "NAT-EC2"
   }
 }
 
 # One private t2.micro instance
 resource "aws_instance" "private" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t3.micro"
-  subnet_id              = aws_subnet.private.id
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.private.id
   associate_public_ip_address = false
-  vpc_security_group_ids = [aws_security_group.private_sg.id]
+  vpc_security_group_ids      = [aws_security_group.private_sg.id]
 
   tags = {
     Name = "PrivateInstance-1"
   }
 }
 
+# -----------------------------
+# Generate public/private key for the VPN-EC2 instance
+# -----------------------------
 
+
+# Generate a new RSA private key for VPN-EC2
+resource "tls_private_key" "vpn_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+# Upload the public key to AWS as a Key Pair
+resource "aws_key_pair" "vpn_keypair" {
+  key_name   = "vpn-keypair"
+  public_key = tls_private_key.vpn_key.public_key_openssh
+}
+
+# Write the private key (.pem) file locally
+resource "local_file" "vpn_private_key" {
+  content              = tls_private_key.vpn_key.private_key_pem
+  filename             = "${path.module}/vpn-keypair.pem"
+  file_permission      = "0400"
+}
+
+
+
+# -----------------------------
+# Get latest Ubuntu AMI
+# -----------------------------
 data "aws_ami" "ubuntu" {
   most_recent = true
 
