@@ -107,18 +107,105 @@ resource "aws_route_table_association" "private_assoc" {
 
 
 
-/*
 # -----------------------------
-# Example Public EC2
+# Security Groups
 # -----------------------------
-resource "aws_instance" "public_ec2" {
-  ami                         = "ami-0e6a50b0059fd2cc3" # Ubuntu 24.04 LTS
-  instance_type               = "t3.micro"
-  subnet_id                   = aws_subnet.public.id
-  associate_public_ip_address  = true
+# Public SG: allow SSH from anywhere and allow all outbound
+resource "aws_security_group" "public_sg" {
+  name        = "460VPC-public-sg"
+  description = "Allow SSH inbound from anywhere for public instances"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   tags = {
-    Name = "PublicInstance"
+    Name = "460VPC-public-sg"
   }
 }
-*/
+
+# Private SG: allow SSH only from the public SG and allow all outbound
+resource "aws_security_group" "private_sg" {
+  name        = "460VPC-private-sg"
+  description = "Allow SSH from public instances and internal traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description      = "SSH from public instances"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    security_groups  = [aws_security_group.public_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "460VPC-private-sg"
+  }
+}
+
+# -----------------------------
+# EC2 Instances
+# -----------------------------
+# Two public t2.micro instances
+resource "aws_instance" "public" {
+  count                     = 2
+  ami                       = data.aws_ami.ubuntu.id
+  instance_type             = "t3.micro"
+  subnet_id                 = aws_subnet.public.id
+  associate_public_ip_address = true
+  vpc_security_group_ids    = [aws_security_group.public_sg.id]
+
+  tags = {
+    Name = "PublicInstance-${count.index + 1}"
+  }
+}
+
+# One private t2.micro instance
+resource "aws_instance" "private" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.private.id
+  associate_public_ip_address = false
+  vpc_security_group_ids = [aws_security_group.private_sg.id]
+
+  tags = {
+    Name = "PrivateInstance-1"
+  }
+}
+
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
