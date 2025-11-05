@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36" version="28.2.8">
   <diagram name="Page-1" id="ghH-d4-OS3JgLkEGgeWX">
-    <mxGraphModel dx="1175" dy="698" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1371" dy="814" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -11,7 +10,7 @@
         <mxCell id="sLUQ4b3OyxAOcTCVwANP-4" value="&lt;font style=&quot;font-size: 15px;&quot; face=&quot;Georgia&quot;&gt;Private Subnet&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" vertex="1" parent="sLUQ4b3OyxAOcTCVwANP-3">
           <mxGeometry x="70" y="60" width="260" height="395" as="geometry" />
         </mxCell>
-        <mxCell id="sLUQ4b3OyxAOcTCVwANP-5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d3b194;" vertex="1" parent="sLUQ4b3OyxAOcTCVwANP-4">
+        <mxCell id="sLUQ4b3OyxAOcTCVwANP-5" value="&lt;font face=&quot;Georgia&quot;&gt;Private Server&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d3b194;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" vertex="1" parent="sLUQ4b3OyxAOcTCVwANP-4">
           <mxGeometry x="49.310344827586206" y="57.80487804878049" width="161.3793103448276" height="250.48780487804876" as="geometry" />
         </mxCell>
         <mxCell id="sLUQ4b3OyxAOcTCVwANP-36" value="Blue" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1ba1e2;fontColor=#ffffff;strokeColor=#006EAF;" vertex="1" parent="sLUQ4b3OyxAOcTCVwANP-4">
