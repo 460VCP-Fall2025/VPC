@@ -22,4 +22,11 @@ When that is complete, run:
 terraform apply
 ```
 Type "yes" and Terraform should create the infrastructure in your AWS account, which you can view and access through your AWS Management Console
+
+When done with testing the VPC and you would like to terminate it, run:
+``` bash
+terraform destroy
+```
+Type "yes" and Terraform should terminate all resources and instances created.
+
  
