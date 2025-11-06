@@ -1,0 +1,18 @@
+[Unit]
+Description=Python Web Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/webserver
+ExecStart=/usr/bin/python3 /home/ubuntu/webserver/webserver.py
+Restart=always
+RestartSec=5
+User=ubuntu
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=append:/var/log/webserver.log
+StandardError=append:/var/log/webserver.log
+
+[Install]
+WantedBy=multi-user.target
