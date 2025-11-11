@@ -201,23 +201,44 @@ resource "aws_security_group" "private_sg" {
   description = "Allow traffic only between NAT-EC2 and private instance"
   vpc_id      = aws_vpc.main.id
 
-  # Inbound: accept any protocol from NAT-EC2 (through its SG)
+# --- Inbound Rules ---
+
+  # Allow VPN-EC2 to access private server on TCP/8080
   ingress {
-    description     = "All traffic from NAT-EC2"
+    description     = "VPN-EC2 to private-server on port 8080"
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.vpn_sg.id]
+  }
+
+  # Allow NAT-EC2 if you still use it for SSH, mgmt, etc.
+  ingress {
+    description     = "NAT-EC2 internal management access (optional)"
     from_port       = 0
     to_port         = 0
     protocol        = "-1"
     security_groups = [aws_security_group.nat_sg.id]
   }
-  
 
-  # Outbound: allow only to NAT-EC2
+  # --- Outbound Rules ---
+
+  # Allow all outbound to NAT-EC2 (for Internet access)
   egress {
-    description     = "All traffic to NAT-EC2"
+    description     = "Private to NAT (for Internet)"
     from_port       = 0
     to_port         = 0
     protocol        = "-1"
     security_groups = [aws_security_group.nat_sg.id]
+  }
+
+  # Allow all outbound to VPN-EC2 (for responses or diagnostics)
+  egress {
+    description     = "Private to VPN (all ports)"
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.vpn_sg.id]
   }
 
   tags = {
@@ -232,7 +253,7 @@ resource "aws_security_group" "private_sg" {
 
 # VPN EC2
 resource "aws_instance" "vpn_ec2" {
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = data.aws_ami.vpn_ami.id
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
@@ -266,12 +287,12 @@ resource "aws_instance" "nat_ec2" {
 
 # One private t2.micro instance
 resource "aws_instance" "private" {
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = data.aws_ami.private_server_ami.id
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.private.id
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.private_sg.id]
-
+  
   tags = {
     Name = "PrivateInstance-1"
   }
@@ -320,5 +341,24 @@ data "aws_ami" "ubuntu" {
   }
 
   owners = ["099720109477"] # Canonical
+}
+
+
+# -----------------------------
+# Get latest Ubuntu AMI
+# -----------------------------
+data "aws_ami" "private_server_ami" {
+  most_recent = true
+  name_regex = "private-server-ami-*"
+  owners = ["self"]
+}
+
+# -----------------------------
+# Get latest Ubuntu AMI
+# -----------------------------
+data "aws_ami" "vpn_ami" {
+  most_recent = true
+  name_regex = "private-vpn-ami-*"
+  owners = ["self"]
 }
 
