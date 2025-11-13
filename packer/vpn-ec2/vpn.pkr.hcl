@@ -49,6 +49,7 @@ build {
   provisioner "shell" {
     script = "./run_client.sh"
   }
+
 }
 
 
