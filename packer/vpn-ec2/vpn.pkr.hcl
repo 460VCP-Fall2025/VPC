@@ -55,9 +55,6 @@ build {
     script = "./run_client.sh"
   }
 
-  
-
-
 }
 
 
