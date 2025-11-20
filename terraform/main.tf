@@ -84,9 +84,6 @@ resource "aws_route_table" "public" {
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
-  # AWS automatically provides a local route,
-  # so we don't add any routes manually yet
-
   tags = {
     Name = "460VPC-rtb-private"
   }
@@ -111,6 +108,14 @@ resource "aws_security_group" "vpn_sg" {
   name        = "460VPC-vpn-sg"
   description = "Allow SSH, HTTPS, and ICMP inbound for VPN instance"
   vpc_id      = aws_vpc.main.id
+
+  # OpenVPN UDP port
+  ingress {
+    from_port   = 1194
+    to_port     = 1194
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   ingress {
     description = "SSH (TCP 22)"
@@ -212,6 +217,15 @@ resource "aws_security_group" "private_sg" {
     security_groups = [aws_security_group.vpn_sg.id]
   }
 
+  # ping testing if vpn works
+  ingress {
+    description = "ICMP (ping)"
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Allow NAT-EC2 if you still use it for SSH, mgmt, etc.
   ingress {
     description     = "NAT-EC2 internal management access (optional)"
@@ -263,14 +277,33 @@ resource "aws_instance" "vpn_ec2" {
   tags = {
     Name = "VPN-EC2"
   }
+
+  # script needs to be ran after the ec2 starts
+  provisioner "remote-exec"{
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      private_key = tls_private_key.vpn_key.private_key_pem
+      host = self.public_ip
+    }
+    inline = [
+      "chmod +x install_openvpn.sh",
+      "sudo ./install_openvpn.sh",
+      "while [ ! -f /home/ubuntu/vpn-key.ovpn ]; do sleep 1; done"
+      ]
+  }
 }
+
 
 #output ssh command for VPN-EC2 upon creation
 output "vpn_ec2_ssh_command" {
   description = "SSH command for VPN-EC2"
   value       = "ssh -i vpn-keypair.pem ubuntu@${aws_instance.vpn_ec2.public_ip}"
 }
-
+output "vpn_ec2_ovpn_command" {
+  description = "Run this command to get the .ovpn key"
+  value       = "scp -o StrictHostKeyChecking=no -i ./vpn-keypair.pem ubuntu@${aws_instance.vpn_ec2.public_ip}:/home/ubuntu/vpn-key.ovpn ${path.module}/vpn-key.ovpn"
+}
 
 # NAT EC2
 resource "aws_instance" "nat_ec2" {
@@ -301,7 +334,6 @@ resource "aws_instance" "private" {
 # -----------------------------
 # Generate public/private key for the VPN-EC2 instance
 # -----------------------------
-
 
 # Generate a new RSA private key for VPN-EC2
 resource "tls_private_key" "vpn_key" {
