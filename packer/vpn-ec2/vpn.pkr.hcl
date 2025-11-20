@@ -45,6 +45,11 @@ build {
     destination = "/home/ubuntu/webclient.tar"
   }
 
+  provisioner "file" {
+    source      = "./install_openvpn.sh"
+    destination = "/home/ubuntu/install_openvpn.sh"
+  }
+
   # Run setup script
   provisioner "shell" {
     script = "./run_client.sh"
