@@ -1,11 +1,7 @@
-
-
-# Create the script
-cat > /home/ubuntu/setup-vpn.sh << 'EOF'
 #!/bin/bash
 
 # Set working directory
-cd /home/ubuntu
+cd /home/ubuntu/openvpn-config/
 
 # Make install script executable and run it
 chmod +x install_openvpn.sh
@@ -21,7 +17,6 @@ mv ~/vpn-key.ovpn ~/openvpn-config/
 
 # Log completion
 echo "VPN setup completed at $(date)" >> /var/log/vpn-setup.log
-EOF
 
 
 
