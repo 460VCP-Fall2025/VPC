@@ -15,19 +15,18 @@ resource "aws_instance" "vpn_ec2" {
   tags = {
     Name = "VPN-EC2"
   }
-
-  depends_on = [local_file.vpn_private_key]
-
-  # Add SSH key to agent when instance is created
-  provisioner "local-exec" {
-    command = "ssh-add ${local_file.vpn_private_key.filename}"
+  provisioner "file" {
+  connection {
+    type        = "ssh"
+    host        = self.public_ip
+    user        = "ubuntu"
+    private_key = tls_private_key.vpn_key.private_key_pem
   }
 
-  # Remove SSH key from agent when destroying
-  provisioner "local-exec" {
-    when    = destroy
-    command = "ssh-add -d ./vpn-keypair.pem|| true"
-  }
+  source      = local_file.vpn_private_key.filename
+  destination = "/home/ubuntu/.ssh/id_rsa"
+}
+
   #Installing vpn software and setting up the webclient.py run script
   provisioner "remote-exec" {
     connection {
@@ -38,6 +37,8 @@ resource "aws_instance" "vpn_ec2" {
     }
 
     inline = [
+      "chmod 700 /home/ubuntu/.ssh",
+      "chmod 600 /home/ubuntu/.ssh/id_rsa",
       # Replace placeholder in send_request.sh
       "sed -i \"s/__AWSLBDNS__/${aws_lb.nlb.dns_name}/\" /home/ubuntu/send_request.sh",
 
