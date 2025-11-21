@@ -37,12 +37,12 @@ resource "aws_lb_target_group" "blue" {
   vpc_id   = aws_vpc.main.id
 
   health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    interval            = 30
+    enabled           = true
+    healthy_threshold = 2
+    interval          = 30
 
     port                = "traffic-port"
-    protocol            = "TCP"  
+    protocol            = "TCP"
     unhealthy_threshold = 2
   }
 
@@ -70,12 +70,12 @@ resource "aws_lb_target_group" "green" {
   vpc_id   = aws_vpc.main.id
 
   health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    interval            = 30
+    enabled           = true
+    healthy_threshold = 2
+    interval          = 30
     # Remove matcher and path - TCP doesn't use these
     port                = "traffic-port"
-    protocol            = "TCP" 
+    protocol            = "TCP"
     unhealthy_threshold = 2
   }
 

@@ -74,55 +74,18 @@ resource "aws_security_group" "nat_sg" {
 
   # SSH access for management
   ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["${aws_instance.vpn_ec2.private_ip}/32"] # Only VPN-EC2 can ssh into NAT-EC2
-    description = "SSH management access"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.vpn_sg.id] # Only VPN-EC2 can ssh into NAT-EC2
+    description     = "SSH management access"
   }
-
-  # EGRESS: Allow traffic TO internet (for forwarding)
+  # NAT EC2 needs only this outbound:
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "All traffic to internet"
-  }
-
-  # EGRESS: Allow return traffic TO private subnets
-  egress {
-    from_port = 32768
-    to_port   = 65535
-    protocol  = "tcp"
-    cidr_blocks = [
-      aws_subnet.private_blue.cidr_block,
-      aws_subnet.private_green.cidr_block
-    ]
-    description = "Return traffic to private subnets (ephemeral ports)"
-  }
-
-  # EGRESS: Allow specific return traffic to private subnets
-  egress {
-    from_port = 80
-    to_port   = 80
-    protocol  = "tcp"
-    cidr_blocks = [
-      aws_subnet.private_blue.cidr_block,
-      aws_subnet.private_green.cidr_block
-    ]
-    description = "HTTP return traffic to private subnets"
-  }
-
-  egress {
-    from_port = 443
-    to_port   = 443
-    protocol  = "tcp"
-    cidr_blocks = [
-      aws_subnet.private_blue.cidr_block,
-      aws_subnet.private_green.cidr_block
-    ]
-    description = "HTTPS return traffic to private subnets"
   }
 
   tags = {
@@ -141,17 +104,17 @@ resource "aws_security_group" "private_sg" {
 
   # App port from public subnet
   ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["${aws_instance.vpn_ec2.private_ip}/32"]
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.vpn_sg.id]
   }
 
   # App port from NLB subnets (for health checks)
   ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
+    from_port = 8080
+    to_port   = 8080
+    protocol  = "tcp"
     cidr_blocks = [
       aws_subnet.private_blue.cidr_block,
       aws_subnet.private_green.cidr_block
@@ -160,55 +123,33 @@ resource "aws_security_group" "private_sg" {
 
   # SSH from VPN EC2 (for management)
   ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["${aws_instance.vpn_ec2.private_ip}/32"]
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.vpn_sg.id]
   }
 
   # ping testing if vpn works
   ingress {
-    description = "ICMP (ping)"
-    from_port   = -1
-    to_port     = -1
-    protocol    = "icmp"
-    cidr_blocks = ["${aws_instance.vpn_ec2.private_ip}/32"]
+    description     = "ICMP (ping)"
+    from_port       = -1
+    to_port         = -1
+    protocol        = "icmp"
+    security_groups = [aws_security_group.vpn_sg.id]
   }
 
-  # Outbound HTTP/HTTPS to NAT instance for internet access
-  egress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["${aws_instance.nat_ec2.private_ip}/32"]
-  }
-
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["${aws_instance.nat_ec2.private_ip}/32"]
-  }
-
-  # Allow all outbound to NAT instance
+  # Outbound traffic to NAT instance for internet access
   egress {
     from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["${aws_instance.nat_ec2.private_ip}/32"]
-  }
-
-  # Return traffic to public subnet
-  egress {
-    from_port   = 32768
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = [aws_subnet.public.cidr_block]
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
     Name = "460VPC-private-sg"
   }
 }
+
 
 

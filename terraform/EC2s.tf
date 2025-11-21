@@ -18,7 +18,7 @@ resource "aws_instance" "vpn_ec2" {
 
   depends_on = [local_file.vpn_private_key]
 
-   # Add SSH key to agent when instance is created
+  # Add SSH key to agent when instance is created
   provisioner "local-exec" {
     command = "ssh-add ${local_file.vpn_private_key.filename}"
   }
@@ -26,7 +26,7 @@ resource "aws_instance" "vpn_ec2" {
   # Remove SSH key from agent when destroying
   provisioner "local-exec" {
     when    = destroy
-    command = "ssh-add -d vpn-keypair.pem || true"
+    command = "ssh-add -d ./vpn-keypair.pem|| true"
   }
   #Installing vpn software and setting up the webclient.py run script
   provisioner "remote-exec" {
@@ -38,19 +38,13 @@ resource "aws_instance" "vpn_ec2" {
     }
 
     inline = [
-      # Create the send_request.sh script correctly
-      "cat > /home/ubuntu/send_request.sh << 'SCRIPT'",
-      "#!/usr/bin/env bash",
-      "python3 /home/ubuntu/webclient/webclient.py ${aws_lb.nlb.dns_name} 8080 response.html",
-      "SCRIPT",
-
-      # Set proper permissions
-      "chmod +x /home/ubuntu/send_request.sh",
-      "chown ubuntu:ubuntu /home/ubuntu/send_request.sh",
+      # Replace placeholder in send_request.sh
+      "sed -i \"s/__AWSLBDNS__/${aws_lb.nlb.dns_name}/\" /home/ubuntu/send_request.sh",
 
       #Create ssh commands to blue & green
       "echo 'ssh ubuntu@${aws_instance.blue.private_ip}'> /home/ubuntu/ssh_commands/ssh_blue.sh",
-      "echo 'ssh ubuntu@${aws_instance.green.private_ip}'> /home/ubuntu/ssh_commands/ssh_green.sh"
+      "echo 'ssh ubuntu@${aws_instance.green.private_ip}'> /home/ubuntu/ssh_commands/ssh_green.sh",
+      "echo 'ssh ubuntu@${aws_instance.nat_ec2.private_ip}'> /home/ubuntu/ssh_commands/ssh_nat.sh",
     ]
 
   }
@@ -65,8 +59,8 @@ resource "aws_instance" "nat_ec2" {
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.nat_sg.id]
-  source_dest_check           = false # CRITICAL: Must disable for NAT functionality
-  key_name               = aws_key_pair.vpn_keypair.key_name // to ssh into Nat-EC2 from VPN-EC2
+  source_dest_check           = false                             # CRITICAL: Must disable for NAT functionality
+  key_name                    = aws_key_pair.vpn_keypair.key_name // to ssh into Nat-EC2 from VPN-EC2
 
 
   tags = {
@@ -87,24 +81,18 @@ resource "aws_instance" "blue" {
     Name = "Blue-Instance"
   }
 
-user_data = <<-EOF
+  user_data = <<-EOF
   #!/bin/bash
 
-  INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id || echo "Unable to Obtain Instance ID")
-  AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone || echo "Unable to Obtain Availability Zone")
-  
-  # Create HTML file with variables
-  cat > /home/ubuntu/webserver/response.html << HTML
-  <html>
-  <body>
-  <h1>Hello from Blue Environment!</h1>
-  <p>Instance ID: $INSTANCE_ID</p>
-  <p>Availability Zone: $AZ</p>
-  </body>
-  </html>
-HTML
+  mkdir -p /home/ubuntu/webserver # Ensure directory exists
+  # Metadata
+  INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+  AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
 
-  chown ubuntu:ubuntu /home/ubuntu/webserver/response.html
+  # Replace placeholders
+  sed -i "s/__ENV__/BLUE/" /home/ubuntu/webserver/response.html
+  sed -i "s/__INSTANCE_ID__/$INSTANCE_ID/" /home/ubuntu/webserver/response.html
+  sed -i "s/__AZ__/$AZ/" /home/ubuntu/webserver/response.html
 EOF
 }
 
@@ -115,30 +103,28 @@ resource "aws_instance" "green" {
   subnet_id                   = aws_subnet.private_green.id
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.private_sg.id]
-  key_name               = aws_key_pair.vpn_keypair.key_name
+  key_name                    = aws_key_pair.vpn_keypair.key_name
 
   tags = {
     Name = "Green-Instance"
   }
 
-user_data = <<-EOF
+  user_data = <<-EOF
   #!/bin/bash
-  # Create HTML file with variables
-  cat > /home/ubuntu/webserver/response.html << HTML
-  <html>
-  <body>
-  <h1>Hello from Green Environment!</h1>
-  <p>Instance ID: $INSTANCE_ID</p>
-  <p>Availability Zone: $AZ</p>
-  </body>
-  </html>
-HTML
 
-  chown ubuntu:ubuntu /home/ubuntu/webserver/response.html
+  mkdir -p /home/ubuntu/webserver # Ensure directory exists
+  # Metadata
+  INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+  AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
+
+  # Replace placeholders
+  sed -i "s/__ENV__/GREEN/" /home/ubuntu/webserver/response.html
+  sed -i "s/__INSTANCE_ID__/$INSTANCE_ID/" /home/ubuntu/webserver/response.html
+  sed -i "s/__AZ__/$AZ/" /home/ubuntu/webserver/response.html
 EOF
-
-
 }
+
+
 
 
 
