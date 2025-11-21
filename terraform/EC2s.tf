@@ -54,7 +54,7 @@ resource "aws_instance" "vpn_ec2" {
 
 # NAT EC2
 resource "aws_instance" "nat_ec2" {
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = data.aws_ami.nat_ami.id
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true

@@ -17,7 +17,6 @@ data "aws_ami" "vpn_ami" {
 }
 
 
-/*
 # -----------------------------
 # Get latest Ubuntu AMI
 # -----------------------------
@@ -26,4 +25,3 @@ data "aws_ami" "nat_ami" {
   name_regex = "nat-ami-*"
   owners = ["self"]
 }
-*/

@@ -24,7 +24,7 @@ variable "subnet_id" {
 source "amazon-ebs" "nat" {
   region        = var.aws_region
   instance_type = "t3.micro"
-  ami_name      = "custom-nat-ami-{{timestamp}}"
+  ami_name      = "nat-ami-{{timestamp}}"
   ssh_username  = "ubuntu"
 
   source_ami_filter {
