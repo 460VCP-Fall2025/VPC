@@ -29,7 +29,7 @@ locals {
 # AMI Build Definition
 # -----------------------------
 source "amazon-ebs" "vpn-ec2" {
-  ami_name      = "private-vpn-ami-${local.timestamp}"
+  ami_name      = "vpn-ami-${local.timestamp}"
   source_ami    = "${data.amazon-ami.ubuntu.id}"
   instance_type = "t3.micro"
   region        = "us-east-1"
@@ -50,11 +50,20 @@ build {
     destination = "/home/ubuntu/install_openvpn.sh"
   }
 
-  # Run setup script
-  provisioner "shell" {
-    script = "./run_client.sh"
+  provisioner "file" {
+    source      = "./run_install_openvpn_script.sh"
+    destination = "/home/ubuntu/run_install_openvpn_script.sh"
   }
 
+  provisioner "file" {
+    source      = "./run_install_openvpn_script.service"
+    destination = "/tmp/run_install_openvpn_script.service"
+  }
+
+  # Run setup script
+  provisioner "shell" {
+    script = "./vpn_packer.sh"
+  }
 }
 
 

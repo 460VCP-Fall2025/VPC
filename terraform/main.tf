@@ -30,28 +30,28 @@ resource "aws_subnet" "public" {
 }
 
 # -----------------------------
-# Private Subnet A (10.0.0.128/26)
+# Private Subnet Blue (10.0.0.128/26)
 # -----------------------------
-resource "aws_subnet" "private_a" {
+resource "aws_subnet" "private_blue" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.0.128/26"
   availability_zone = "us-east-1b"
 
   tags = {
-    Name = "460VPC-subnet-private1-us-east-1b"
+    Name = "460VPC-subnet-privateblue-us-east-1b"
   }
 }
 
 # -----------------------------
-# Private Subnet B (10.0.0.192/26)
+# Private Subnet Gree (10.0.0.192/26)
 # -----------------------------
-resource "aws_subnet" "private_b" {
+resource "aws_subnet" "private_green" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.0.192/26"
   availability_zone = "us-east-1c"
 
   tags = {
-    Name = "460VPC-subnet-private2-us-east-1c"
+    Name = "460VPC-subnet-privategreen-us-east-1c"
   }
 }
 

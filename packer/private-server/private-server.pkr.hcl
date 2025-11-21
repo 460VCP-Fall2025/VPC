@@ -55,7 +55,7 @@ build {
 
   # Run setup script
   provisioner "shell" {
-    script = "./run_server.sh"
+    script = "./private_server_packer.sh"
   }
 }
 

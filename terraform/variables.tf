@@ -1,29 +1,40 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
 
 
-
-
-
+#Sets blue or green as currently active environment
 variable "active_env" {
-  description = "blue or green"
+  description = "Active environment: blue or green (the other will be disabled)"
   type        = string
   default     = "blue"
+
+  validation {
+    condition     = contains(["blue", "green"], var.active_env)
+    error_message = "Active environment must be either 'blue' or 'green'."
+  }
 }
 
+# Derived local variables
 locals {
   active_tg = var.active_env == "blue" ? aws_lb_target_group.blue.arn : aws_lb_target_group.green.arn
+
+  # Automatically enable the active environment and disable the other
+  enable_blue_env  = var.active_env == "blue"
+  enable_green_env = var.active_env == "green"
 }
 
-variable "enable_blue_env" {
-  description = "Enable blue environment"
-  type        = bool
-  default     = true
-}
 
-variable "blue_instance_count" {
-  description = "Number of instances in blue environment"
-  type        = number
-  default     = 1
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

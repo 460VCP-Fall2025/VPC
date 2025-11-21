@@ -1,69 +1,169 @@
 #------------------------------
-# SG for VPN EC2: SSH inbound, only ALB outbound
+# SG for VPN EC2
 #------------------------------
 resource "aws_security_group" "vpn_sg" {
   name   = "460VPC-vpn-sg"
   vpc_id = aws_vpc.main.id
 
-  # SSH
+  # SSH access
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] # Restrict to your IP in production
+    description = "SSH access"
   }
 
-  # VPN -> private subnets on port 8080
-  # (NLB sits inside private subnets)
+  # Allow all outbound traffic
   egress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/24"] # your full VPC range
-  }
-}
-
-
-resource "aws_security_group" "nat_sg" {
-  name   = "460VPC-nat-sg"
-  vpc_id = aws_vpc.main.id
-
-  # NAT -> private subnets on port 8080
-  egress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/24"]
-  }
-
-  # private subnets -> NAT
-  ingress {
     from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/24"]
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "All outbound traffic"
+  }
+
+  tags = {
+    Name = "vpn-ec2-sg"
   }
 }
 
 
 
-# -----------------------------
-# Private SG: allow only NAT-EC2 communication
-# -----------------------------
-resource "aws_security_group" "private_sg" {
-  name        = "460VPC-private-sg"
-  description = "Allow traffic only between NAT-EC2 and private instance"
+#------------------------------
+# SG for NAT EC2
+#------------------------------
+resource "aws_security_group" "nat_sg" {
+  name_prefix = "nat-instance-"
   vpc_id      = aws_vpc.main.id
 
-# --- Inbound Rules ---
-
-  # Allow VPN-EC2 to access private server on TCP/8080
+  # INGRESS: Allow traffic FROM private subnets
   ingress {
-    description     = "VPN-EC2 to private-server on port 8080"
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    cidr_blocks = ["10.0.0.0/24"]  # your VPC CIDR
+    from_port = 80
+    to_port   = 80
+    protocol  = "tcp"
+    cidr_blocks = [
+      aws_subnet.private_blue.cidr_block,
+      aws_subnet.private_green.cidr_block
+    ]
+    description = "HTTP from private subnets"
+  }
+
+  ingress {
+    from_port = 443
+    to_port   = 443
+    protocol  = "tcp"
+    cidr_blocks = [
+      aws_subnet.private_blue.cidr_block,
+      aws_subnet.private_green.cidr_block
+    ]
+    description = "HTTPS from private subnets"
+  }
+
+  # Allow all TCP traffic from private subnets (more permissive)
+  ingress {
+    from_port = 0
+    to_port   = 65535
+    protocol  = "tcp"
+    cidr_blocks = [
+      aws_subnet.private_blue.cidr_block,
+      aws_subnet.private_green.cidr_block
+    ]
+    description = "All TCP from private subnets"
+  }
+
+  # SSH access for management
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${aws_instance.vpn_ec2.private_ip}/32"] # Only VPN-EC2 can ssh into NAT-EC2
+    description = "SSH management access"
+  }
+
+  # EGRESS: Allow traffic TO internet (for forwarding)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "All traffic to internet"
+  }
+
+  # EGRESS: Allow return traffic TO private subnets
+  egress {
+    from_port = 32768
+    to_port   = 65535
+    protocol  = "tcp"
+    cidr_blocks = [
+      aws_subnet.private_blue.cidr_block,
+      aws_subnet.private_green.cidr_block
+    ]
+    description = "Return traffic to private subnets (ephemeral ports)"
+  }
+
+  # EGRESS: Allow specific return traffic to private subnets
+  egress {
+    from_port = 80
+    to_port   = 80
+    protocol  = "tcp"
+    cidr_blocks = [
+      aws_subnet.private_blue.cidr_block,
+      aws_subnet.private_green.cidr_block
+    ]
+    description = "HTTP return traffic to private subnets"
+  }
+
+  egress {
+    from_port = 443
+    to_port   = 443
+    protocol  = "tcp"
+    cidr_blocks = [
+      aws_subnet.private_blue.cidr_block,
+      aws_subnet.private_green.cidr_block
+    ]
+    description = "HTTPS return traffic to private subnets"
+  }
+
+  tags = {
+    Name = "nat-sg"
+  }
+}
+
+
+#------------------------------
+# SG for private instances (blue/green instances)
+#------------------------------
+resource "aws_security_group" "private_sg" {
+  name        = "460VPC-private-sg"
+  description = "Allow traffic to/from NAT on any, and from VPN-EC2 on port 8080"
+  vpc_id      = aws_vpc.main.id
+
+  # App port from public subnet
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["${aws_instance.vpn_ec2.private_ip}/32"]
+  }
+
+  # App port from NLB subnets (for health checks)
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [
+      aws_subnet.private_blue.cidr_block,
+      aws_subnet.private_green.cidr_block
+    ]
+  }
+
+  # SSH from VPN EC2 (for management)
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${aws_instance.vpn_ec2.private_ip}/32"]
   }
 
   # ping testing if vpn works
@@ -72,36 +172,38 @@ resource "aws_security_group" "private_sg" {
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["${aws_instance.vpn_ec2.private_ip}/32"]
   }
 
-  # Allow NAT-EC2 if you still use it for SSH, mgmt, etc.
-  ingress {
-    description     = "NAT-EC2 internal management access (optional)"
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.nat_sg.id]
-  }
-
-  # --- Outbound Rules ---
-
-  # Allow all outbound to NAT-EC2 (for Internet access)
+  # Outbound HTTP/HTTPS to NAT instance for internet access
   egress {
-    description     = "Private to NAT (for Internet)"
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.nat_sg.id]
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["${aws_instance.nat_ec2.private_ip}/32"]
   }
 
-  # Allow all outbound to VPN-EC2 (for responses or diagnostics)
   egress {
-    description     = "Private to VPN (all ports)"
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.vpn_sg.id]
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["${aws_instance.nat_ec2.private_ip}/32"]
+  }
+
+  # Allow all outbound to NAT instance
+  egress {
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["${aws_instance.nat_ec2.private_ip}/32"]
+  }
+
+  # Return traffic to public subnet
+  egress {
+    from_port   = 32768
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.public.cidr_block]
   }
 
   tags = {

@@ -4,7 +4,7 @@
 
 
 resource "aws_route53_zone" "private" {
-  name = "local" 
+  name = "local"
 
   vpc {
     vpc_id = aws_vpc.main.id
@@ -13,12 +13,12 @@ resource "aws_route53_zone" "private" {
 
 resource "aws_route53_record" "alb_alias" {
   zone_id = aws_route53_zone.private.zone_id
-  name    = "lb.local"    
+  name    = "lb.local"
   type    = "A"
 
   alias {
-    name                   = aws_lb.app.dns_name
-    zone_id                = aws_lb.app.zone_id
+    name                   = aws_lb.nlb.dns_name
+    zone_id                = aws_lb.nlb.zone_id
     evaluate_target_health = true
   }
 }

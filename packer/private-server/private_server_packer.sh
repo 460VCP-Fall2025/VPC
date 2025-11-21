@@ -11,6 +11,7 @@ sudo apt install -y python3 python3-pip
 # Extract your tar archive
 cd ~/
 tar -xf webserver.tar
+rm webserver.tar
 
 
 sudo mv /tmp/webserver.service /etc/systemd/system/webserver.service

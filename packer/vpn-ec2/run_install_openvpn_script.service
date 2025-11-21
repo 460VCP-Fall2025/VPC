@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenVPN Installation Script Service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/openvpn-config/run_install_openvpn_script.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
