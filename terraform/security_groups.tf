@@ -14,6 +14,14 @@ resource "aws_security_group" "vpn_sg" {
     description = "SSH access"
   }
 
+  ingress {
+  description = "OpenVPN UDP"
+  from_port   = 1194
+  to_port     = 1194
+  protocol    = "udp"
+  cidr_blocks = ["0.0.0.0/0"]
+}
+
   # Allow all outbound traffic
   egress {
     from_port   = 0
