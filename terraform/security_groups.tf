@@ -45,29 +45,6 @@ resource "aws_security_group" "nat_sg" {
   name_prefix = "nat-instance-"
   vpc_id      = aws_vpc.main.id
 
-  # INGRESS: Allow traffic FROM private subnets
-  ingress {
-    from_port = 80
-    to_port   = 80
-    protocol  = "tcp"
-    cidr_blocks = [
-      aws_subnet.private_blue.cidr_block,
-      aws_subnet.private_green.cidr_block
-    ]
-    description = "HTTP from private subnets"
-  }
-
-  ingress {
-    from_port = 443
-    to_port   = 443
-    protocol  = "tcp"
-    cidr_blocks = [
-      aws_subnet.private_blue.cidr_block,
-      aws_subnet.private_green.cidr_block
-    ]
-    description = "HTTPS from private subnets"
-  }
-
   # Allow all TCP traffic from private subnets (more permissive)
   ingress {
     from_port = 0
