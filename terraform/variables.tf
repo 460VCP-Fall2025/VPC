@@ -56,15 +56,23 @@ variable "enable_green_env" {
   default     = false
 }
 
-# ---------------------------------------------------
-# Safety: Ensure only one environment is active
-# ---------------------------------------------------
 locals {
-  env_conflict = (
-    var.enable_blue_env && var.enable_green_env ?
-    "ERROR: You cannot enable both BLUE and GREEN at the same time." :
-    null
-  )
+  blue_enabled  = var.enable_blue_env
+  green_enabled = var.enable_green_env
+}
+
+
+
+
+
+//Making the send_request.sh script locally
+resource "local_file" "send_request_script" {
+  filename = "../webclient/send_request.sh"
+
+  content = <<-EOF
+    #!/usr/bin/env bash
+    python3 webclient.py ${aws_lb.nlb.dns_name} 8080 response.html
+  EOF
 }
 
 

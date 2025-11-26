@@ -1,47 +1,40 @@
 
 
-//Making the send_request.sh script locally
-resource "local_file" "send_request_script" {
-  filename = "../webclient/send_request.sh"
 
-  content = <<-EOF
-    #!/usr/bin/env bash
-    python3 /home/ubuntu/webclient/webclient.py ${aws_lb.nlb.dns_name} 8080 response.html
-  EOF
+resource "terraform_data" "trigger_replacement" {
+  # Concatenate or use a map to include all the variables you want to track
+  input = jsonencode({
+    blue  = var.enable_blue_env
+    green = var.enable_green_env
+  })
 }
 
 
 # -----------------------------
-# EC2 Instances
+# Provisioning Logic (Moved to null_resource)
 # -----------------------------
-# Two public t3.micro instances
-
-# VPN EC2
-resource "aws_instance" "vpn_ec2" {
-
+resource "null_resource" "vpn_ec2_provisioning" {
+  # This triggers recreation of the null_resource (and thus re-running provisioners)
+  # whenever terraform_data.trigger_replacement plans a change.
+  triggers = {
+    reprovision_trigger = terraform_data.trigger_replacement.output
+  }
+  
+  # Ensure the null_resource runs *after* the main EC2 instance is available
   depends_on = [
-    local_file.send_request_script // creating send_request.sh first 
+    aws_instance.vpn_ec2,
+    local_file.send_request_script
   ]
 
-
-  ami                         = data.aws_ami.vpn_ami.id
-  instance_type               = "t3.micro"
-  subnet_id                   = aws_subnet.public.id
-  associate_public_ip_address = true
-  key_name                    = aws_key_pair.vpn_keypair.key_name
-  vpc_security_group_ids      = [aws_security_group.vpn_sg.id]
-
-  tags = {
-    Name = "VPN-EC2"
-  }
+  # All provisioners move here. You can reference aws_instance.vpn_ec2.public_ip
+  
   provisioner "file" {
     connection {
       type        = "ssh"
-      host        = self.public_ip
+      host        = aws_instance.vpn_ec2.public_ip # Reference the main instance's IP
       user        = "ubuntu"
       private_key = tls_private_key.vpn_key.private_key_pem
     }
-
     source      = local_file.vpn_private_key.filename
     destination = "/home/ubuntu/.ssh/id_rsa"
   }
@@ -53,18 +46,18 @@ resource "aws_instance" "vpn_ec2" {
     connection {
       type        = "ssh"
       user        = "ubuntu"
-      host        = self.public_ip
+      host        = aws_instance.vpn_ec2.public_ip
       private_key = tls_private_key.vpn_key.private_key_pem
     }
   }
 
-  #Installing vpn software and setting up the webclient.py run script
+  # Installing vpn software and setting up the webclient.py run script
   provisioner "remote-exec" {
     connection {
       type        = "ssh"
       user        = "ubuntu"
       private_key = tls_private_key.vpn_key.private_key_pem
-      host        = self.public_ip
+      host        = aws_instance.vpn_ec2.public_ip
     }
 
     inline = [
@@ -96,8 +89,30 @@ resource "aws_instance" "vpn_ec2" {
       # NAT always exists
       "echo 'ssh ubuntu@${aws_instance.nat_ec2.private_ip}' > /home/ubuntu/ssh_commands/ssh_nat.sh"
     ]
+  }
+}
+# -----------------------------
+# EC2 Instances
+# -----------------------------
+# Two public t3.micro instances
+
+# VPN EC2
+resource "aws_instance" "vpn_ec2" {
+
+  depends_on = [
+    local_file.send_request_script // creating send_request.sh first 
+  ]
 
 
+  ami                         = data.aws_ami.vpn_ami.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public.id
+  associate_public_ip_address = true
+  key_name                    = aws_key_pair.vpn_keypair.key_name
+  vpc_security_group_ids      = [aws_security_group.vpn_sg.id]
+
+  tags = {
+    Name = "VPN-EC2"
   }
 }
 
