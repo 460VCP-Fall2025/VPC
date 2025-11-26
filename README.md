@@ -1,6 +1,4 @@
 # AWS Virtual Private Cloud Deployer
-By: (idk if you want to put our names, because its a public repo)
-
 ------------------------------------------
 ### VPC Infrastructure
 **This VPC contains 2 subnets a public and a private**
