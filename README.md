@@ -1,10 +1,17 @@
 # AWS Virtual Private Cloud Deployer
+By:
+[Yahya G.](https://www.linkedin.com/in/yahya-guler-ab498a282/)
+[Abdirahman H.](https://www.linkedin.com/in/abdirahman-hassan-9864ba2b2/)
+[Dustin M.](https://www.linkedin.com/in/dustin-marsh-a3101524a/)
+[Paul E.]()
+
+
 ------------------------------------------
 ### VPC Infrastructure
 **This VPC contains 2 subnets a public and a private**
 
 **Public Subnet:**  
-2 EC2 instances one for the VPN which allows you to connect to the network and one for the NAT gateway to allow internet traffic to and from the private servers
+An EC2 instances for the VPN which allows you to connect to the network and A AWS NAT gateway which allows internet traffic to and from the private servers
 
 **Private Subnet:**  
 2 EC2 instances for the private servers and
@@ -22,10 +29,22 @@ The NAT Gateway allows the private servers to access the internet under one IP p
 We have 2 private servers to run blue green deployment, which allows smooth transition to updated software or a second instance in case of a failure.
 A load balancer controls which server is currently active.
 
+------------------------------------------
 ### Running the VPC
-First you will need a AWS account and have to install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), [terraform CLI](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli), and [packer CLI](https://developer.hashicorp.com/packer/tutorials/docker-get-started/get-started-install-cli)
+### Step 1
+First you will need a AWS and IAM account and have to install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), [terraform CLI](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli), and [packer CLI](https://developer.hashicorp.com/packer/tutorials/docker-get-started/get-started-install-cli)
 
-After that navigate into the nat, private-server, and vpn-ec2 and run
+After installing AWS CLI you will have to configure it by using 
+```console
+aws configure
+```
+you can get your keys in your IAM account in  
+*IAM > Users > Security Credentials > Create Access Key*  
+While in Users add the ***AdministratorAccess*** Permissions policies this is needed to run the project
+
+------------------------------------------
+### Step 2
+After that navigate into the private-server and vpn-ec2 and run
 
 ```console
 packer init .
@@ -33,7 +52,9 @@ packer init .
 ```console
 packer build .
 ```
-After that finished for each folder, you can navigate to the terraform folder and run
+------------------------------------------
+### Step 3
+After that finished for both folders folder, you can navigate to the terraform folder and run
 ```console
 terraform init
 ```
@@ -41,6 +62,14 @@ terraform init
 terraform apply
 ```
 type yes and once it finishes you'll be given commands to SSH into the VPN which can be used to SSH into the other instances, and the command to get the .ovpn key.
+
+------------------------------------------
+### Shutting down the VPC
+Once you are done using the VPC make sure to run
+```console
+terraform destroy
+```
+To ensure you don't keep getting charged by AWS
 
 --------------------------
 **DATE OF COMPLETION: DEC 1,2025**
