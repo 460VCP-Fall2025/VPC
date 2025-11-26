@@ -22,6 +22,6 @@ data "aws_ami" "vpn_ami" {
 # -----------------------------
 data "aws_ami" "nat_ami" {
   most_recent = true
-  name_regex = "nat-ami-*"
-  owners = ["self"]
+  name_regex  = "nat-ami-*"
+  owners      = ["self"]
 }

@@ -1,5 +1,5 @@
 
-
+/*
 #Sets blue or green as currently active environment
 variable "active_env" {
   description = "Active environment: blue or green (the other will be disabled)"
@@ -19,6 +19,52 @@ locals {
   # Automatically enable the active environment and disable the other
   enable_blue_env  = var.active_env == "blue"
   enable_green_env = var.active_env == "green"
+}
+
+
+variable "enable_green_env" {
+  description = "Enable green environment"
+  type        = bool
+  default     = true
+}
+
+
+
+variable "enable_blue_env" {
+  description = "Enable blue environment"
+  type        = bool
+  default     = false
+}
+
+*/
+
+# ---------------------------------------------------
+# Enable BLUE environment?
+# ---------------------------------------------------
+variable "enable_blue_env" {
+  description = "Enable the BLUE environment (true = blue active)"
+  type        = bool
+  default     = false
+}
+
+# ---------------------------------------------------
+# Enable GREEN environment?
+# ---------------------------------------------------
+variable "enable_green_env" {
+  description = "Enable the GREEN environment (true = green active)"
+  type        = bool
+  default     = false
+}
+
+# ---------------------------------------------------
+# Safety: Ensure only one environment is active
+# ---------------------------------------------------
+locals {
+  env_conflict = (
+    var.enable_blue_env && var.enable_green_env ?
+    "ERROR: You cannot enable both BLUE and GREEN at the same time." :
+    null
+  )
 }
 
 

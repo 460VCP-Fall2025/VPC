@@ -12,7 +12,6 @@ resource "aws_lb" "nlb" {
 }
 
 
-
 resource "aws_lb_listener" "app" {
   load_balancer_arn = aws_lb.nlb.arn
   port              = 8080
@@ -20,7 +19,7 @@ resource "aws_lb_listener" "app" {
 
   default_action {
     type             = "forward"
-    target_group_arn = local.active_tg
+    target_group_arn = var.enable_blue_env ? aws_lb_target_group.blue.arn : aws_lb_target_group.green.arn
   }
 }
 
@@ -53,11 +52,11 @@ resource "aws_lb_target_group" "blue" {
 
 
 resource "aws_lb_target_group_attachment" "blue_attachment" {
+  count            = var.enable_blue_env ? 1 : 0
   target_group_arn = aws_lb_target_group.blue.arn
-  target_id        = aws_instance.blue.id #getting instance id
+  target_id        = aws_instance.blue[0].id #getting instance id
   port             = 8080
 }
-
 
 #------------------------------
 #Resources for GREEN environment
@@ -86,8 +85,9 @@ resource "aws_lb_target_group" "green" {
 
 
 resource "aws_lb_target_group_attachment" "green_attachment" {
+  count            = var.enable_green_env ? 1 : 0
   target_group_arn = aws_lb_target_group.green.arn
-  target_id        = aws_instance.green.id #getting instance id
+  target_id        = aws_instance.green[0].id #getting instance id
   port             = 8080
 }
 

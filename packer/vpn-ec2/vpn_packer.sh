@@ -23,10 +23,6 @@ mv ~/webclient.py ~/webclient/
 mv ~/install_openvpn.sh ~/openvpn-config/
 mv ~/run_install_openvpn_script.sh ~/openvpn-config/
 
-#Setting perms for send_request.sh
-chmod +x /home/ubuntu/send_request.sh
-chown ubuntu:ubuntu /home/ubuntu/send_request.sh
-
 
 #Create ssh files and set perms and ownership
 touch /home/ubuntu/ssh_commands/ssh_blue.sh /home/ubuntu/ssh_commands/ssh_green.sh /home/ubuntu/ssh_commands/ssh_nat.sh

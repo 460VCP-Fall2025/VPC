@@ -26,15 +26,20 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Private route table (local-only)
+
+# -----------------------------------------
+# Private Route Table (for blue + green)
+# -----------------------------------------
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
-  # AWS automatically provides a local route,
-  # so we don't add any routes manually yet
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main.id
+  }
 
   tags = {
-    Name = "460VPC-rtb-private"
+    Name = "460VPC-private-rt"
   }
 }
 
@@ -55,4 +60,32 @@ resource "aws_route_table_association" "private_assoc_green" {
   subnet_id      = aws_subnet.private_green.id
   route_table_id = aws_route_table.private.id
 }
+
+# -----------------------------------------
+# Elastic IP for NAT Gateway
+# -----------------------------------------
+resource "aws_eip" "nat_eip" {
+  vpc = true
+
+  depends_on = [aws_internet_gateway.igw]
+
+  tags = {
+    Name = "460VPC-nat-eip"
+  }
+}
+
+# -----------------------------------------
+# NAT Gateway in PUBLIC subnet
+# -----------------------------------------
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.public.id
+
+  tags = {
+    Name = "460VPC-nat-gateway"
+  }
+
+  depends_on = [aws_internet_gateway.igw]
+}
+
 

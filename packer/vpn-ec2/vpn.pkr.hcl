@@ -60,11 +60,6 @@ build {
     destination = "/tmp/run_install_openvpn_script.service"
   }
 
-  provisioner "file" {
-    source      = "./send_request.sh"
-    destination = "/home/ubuntu/send_request.sh"
-  }
-
   # Run setup script
   provisioner "shell" {
     script = "./vpn_packer.sh"
