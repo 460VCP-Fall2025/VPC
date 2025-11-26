@@ -36,49 +36,6 @@ resource "aws_security_group" "vpn_sg" {
   }
 }
 
-
-
-#------------------------------
-# SG for NAT EC2
-#------------------------------
-resource "aws_security_group" "nat_sg" {
-  name_prefix = "nat-instance-"
-  vpc_id      = aws_vpc.main.id
-
-  # Allow all TCP traffic from private subnets (more permissive)
-  ingress {
-    from_port = 0
-    to_port   = 65535
-    protocol  = "tcp"
-    cidr_blocks = [
-      aws_subnet.private_blue.cidr_block,
-      aws_subnet.private_green.cidr_block
-    ]
-    description = "All TCP from private subnets"
-  }
-
-  # SSH access for management
-  ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.vpn_sg.id] # Only VPN-EC2 can ssh into NAT-EC2
-    description     = "SSH management access"
-  }
-  # NAT EC2 needs only this outbound:
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "nat-sg"
-  }
-}
-
-
 #------------------------------
 # SG for private instances (blue/green instances)
 #------------------------------
@@ -105,6 +62,14 @@ resource "aws_security_group" "private_sg" {
       aws_subnet.private_green.cidr_block
     ]
   }
+
+  ingress {
+  from_port   = 8080
+  to_port     = 8080
+  protocol    = "tcp"
+  cidr_blocks = ["10.8.0.0/24"]  # VPN clients
+  description = "Allow HTTP from OpenVPN clients"
+}
 
   # SSH from VPN EC2 (for management)
   ingress {

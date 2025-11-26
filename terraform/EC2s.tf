@@ -85,9 +85,6 @@ resource "null_resource" "vpn_ec2_provisioning" {
       fi
       EOF
       ,
-
-      # NAT always exists
-      "echo 'ssh ubuntu@${aws_instance.nat_ec2.private_ip}' > /home/ubuntu/ssh_commands/ssh_nat.sh"
     ]
   }
 }
@@ -116,22 +113,6 @@ resource "aws_instance" "vpn_ec2" {
   }
 }
 
-
-# NAT EC2
-resource "aws_instance" "nat_ec2" {
-  ami                         = data.aws_ami.nat_ami.id
-  instance_type               = "t3.micro"
-  subnet_id                   = aws_subnet.public.id
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.nat_sg.id]
-  source_dest_check           = false                             # CRITICAL: Must disable for NAT functionality
-  key_name                    = aws_key_pair.vpn_keypair.key_name // to ssh into Nat-EC2 from VPN-EC2
-
-
-  tags = {
-    Name = "NAT-EC2"
-  }
-}
 
 # Blue EC2 Instance (only created when blue is active)
 resource "aws_instance" "blue" {
