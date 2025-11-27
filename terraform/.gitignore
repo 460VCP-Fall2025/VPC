@@ -46,6 +46,6 @@ terraform.rc
 *.pem
 *.ovpn
 
-# Ignore generated send_request script
+# Ignore generated send_request scripts
 webclient/unix_send_request.sh
 webclient/win_send_request.sh

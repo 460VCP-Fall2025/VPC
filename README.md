@@ -8,7 +8,7 @@ By:
 
 ------------------------------------------
 ### VPC Infrastructure
-**This VPC contains 3 subnets:
+**This VPC contains 3 subnets**:
 **1 public subnet and**
 **2 private subnets**
 
@@ -55,9 +55,9 @@ packer init .
 packer build .
 ```
 
-Note: Estimated build time: 10 minutes
+**Note**: Estimated build time: 10 minutes
 
-Note: you can open two terminals and run each packer file in parallel to speed up process
+**Note**: you can open two terminals and run each packer file in parallel to speed up process
 
 ------------------------------------------
 ### Step 3
@@ -77,7 +77,7 @@ terraform apply -var="enable_blue_env=false" -var="enable_green_env=true"
 ```
 type yes and once it finishes you'll be given commands to SSH into the VPN which can be used to SSH into the other instances, and the command to get the .ovpn key.
 
-Note: You must set one environment variable to true and the other environment variable to false. They cannot be both false or both true at the same time.
+**Note**: You must set one environment variable to true and the other environment variable to false. They cannot be both false or both true at the same time.
 
 ------------------------------------------
 ### Shutting down the VPC
