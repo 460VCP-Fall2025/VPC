@@ -1,8 +1,7 @@
-
-
-
+#This resource forces a change (replacement) when blue/green environment variables change.
+# It is used as a dependency trigger to ensure the Load Balancer Listener or Target Group weights 
+# are re-evaluated and traffic is reliably shifted during a deployment.
 resource "terraform_data" "trigger_replacement" {
-  # Concatenate or use a map to include all the variables you want to track
   input = jsonencode({
     blue  = var.enable_blue_env
     green = var.enable_green_env
@@ -10,84 +9,7 @@ resource "terraform_data" "trigger_replacement" {
 }
 
 
-# -----------------------------
-# Provisioning Logic (Moved to null_resource)
-# -----------------------------
-resource "null_resource" "vpn_ec2_provisioning" {
-  # This triggers recreation of the null_resource (and thus re-running provisioners)
-  # whenever terraform_data.trigger_replacement plans a change.
-  triggers = {
-    reprovision_trigger = terraform_data.trigger_replacement.output
-  }
-  
-  # Ensure the null_resource runs *after* the main EC2 instance is available
-  depends_on = [
-    aws_instance.vpn_ec2,
-    local_file.unix_send_request_script
-  ]
 
-  # All provisioners move here. You can reference aws_instance.vpn_ec2.public_ip
-  
-  provisioner "file" {
-    connection {
-      type        = "ssh"
-      host        = aws_instance.vpn_ec2.public_ip # Reference the main instance's IP
-      user        = "ubuntu"
-      private_key = tls_private_key.vpn_key.private_key_pem
-    }
-    source      = local_file.vpn_private_key.filename
-    destination = "/home/ubuntu/.ssh/id_rsa"
-  }
-
-  provisioner "file" {
-    source      = local_file.unix_send_request_script.filename
-    destination = "/home/ubuntu/send_request.sh"
-
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      host        = aws_instance.vpn_ec2.public_ip
-      private_key = tls_private_key.vpn_key.private_key_pem
-    }
-  }
-
-  # Installing vpn software and setting up the webclient.py run script
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.vpn_key.private_key_pem
-      host        = aws_instance.vpn_ec2.public_ip
-    }
-
-    inline = [
-      "chmod 700 /home/ubuntu/.ssh",
-      "chmod 600 /home/ubuntu/.ssh/id_rsa",
-
-      # BLUE instance check
-      <<EOF
-      BLUE_IP="${try(aws_instance.blue[0].private_ip, "")}"
-      if [ -z "$BLUE_IP" ]; then
-        echo "BLUE instance is not running" > /home/ubuntu/ssh_commands/ssh_blue.sh
-      else
-        echo "ssh ubuntu@$BLUE_IP" > /home/ubuntu/ssh_commands/ssh_blue.sh
-      fi
-      EOF
-      ,
-
-      # GREEN instance check
-      <<EOF
-      GREEN_IP="${try(aws_instance.green[0].private_ip, "")}"
-      if [ -z "$GREEN_IP" ]; then
-        echo "GREEN instance is not running" > /home/ubuntu/ssh_commands/ssh_green.sh
-      else
-        echo "ssh ubuntu@$GREEN_IP" > /home/ubuntu/ssh_commands/ssh_green.sh
-      fi
-      EOF
-      ,
-    ]
-  }
-}
 # -----------------------------
 # EC2 Instances
 # -----------------------------
@@ -97,7 +19,7 @@ resource "null_resource" "vpn_ec2_provisioning" {
 resource "aws_instance" "vpn_ec2" {
 
   depends_on = [
-    local_file.unix_send_request_script // creating unix_send_request.sh first 
+    local_file.unix_send_request_script
   ]
 
 
