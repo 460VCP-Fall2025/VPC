@@ -15,7 +15,7 @@ rm webclient.tar
 
 # Create directory structure
 mkdir -p ~/openvpn-config
-mkdir -p ~/ssh_commands
+mkdir -p ~/commands_ssh
 
 # Move files to correct locations
 mv ~/install_openvpn.sh ~/openvpn-config/
@@ -23,13 +23,12 @@ mv ~/run_install_openvpn_script.sh ~/openvpn-config/
 
 
 #Create ssh files and set perms and ownership
-touch /home/ubuntu/ssh_commands/ssh_blue.sh /home/ubuntu/ssh_commands/ssh_green.sh /home/ubuntu/ssh_commands/ssh_nat.sh
-chmod +x /home/ubuntu/ssh_commands/ssh_blue.sh
-chmod +x /home/ubuntu/ssh_commands/ssh_green.sh
-chmod +x /home/ubuntu/ssh_commands/ssh_nat.sh
-chown ubuntu:ubuntu /home/ubuntu/ssh_commands/ssh_blue.sh
-chown ubuntu:ubuntu /home/ubuntu/ssh_commands/ssh_green.sh
-chown ubuntu:ubuntu /home/ubuntu/ssh_commands/ssh_nat.sh
+touch /home/ubuntu/commands_ssh/blue_ssh.sh /home/ubuntu/commands_ssh/green_ssh.sh
+chmod +x /home/ubuntu/commands_ssh/blue_ssh.sh
+chmod +x /home/ubuntu/commands_ssh/green_ssh.sh
+chown ubuntu:ubuntu /home/ubuntu/commands_ssh/blue_ssh.sh
+chown ubuntu:ubuntu /home/ubuntu/commands_ssh/green_ssh.sh
+
 
 # Make scripts executable
 chmod +x ~/openvpn-config/install_openvpn.sh

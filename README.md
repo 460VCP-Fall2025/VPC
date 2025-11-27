@@ -8,13 +8,15 @@ By:
 
 ------------------------------------------
 ### VPC Infrastructure
-**This VPC contains 2 subnets a public and a private**
+**This VPC contains 3 subnets:
+**1 public subnet and**
+**2 private subnets**
 
 **Public Subnet:**  
 An EC2 instances for the VPN which allows you to connect to the network and A AWS NAT gateway which allows internet traffic to and from the private servers
 
-**Private Subnet:**  
-2 EC2 instances for the private servers and
+**Private Subnets:**  
+2 EC2 instances (blue and green) for the private servers and
 a load balancer to properly distribute traffic to the 2 private servers
 
 ------------------------------------------
