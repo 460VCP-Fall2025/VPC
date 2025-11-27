@@ -54,22 +54,36 @@ packer init .
 ```console
 packer build .
 ```
+
+Note: Estimated build time: 10 minutes
+
+Note: you can open two terminals and run each packer file in parallel to speed up process
+
 ------------------------------------------
 ### Step 3
 After that finished for both folders folder, you can navigate to the terraform folder and run
 ```console
 terraform init
 ```
+
+To set Blue environment on, run:
 ```console
-terraform apply
+ terraform apply -var="enable_blue_env=true" -var="enable_green_env=false"
+```
+
+To set Green environment on, run:
+```console
+terraform apply -var="enable_blue_env=false" -var="enable_green_env=true"
 ```
 type yes and once it finishes you'll be given commands to SSH into the VPN which can be used to SSH into the other instances, and the command to get the .ovpn key.
+
+Note: You must set one environment variable to true and the other environment variable to false. They cannot be both false or both true at the same time.
 
 ------------------------------------------
 ### Shutting down the VPC
 Once you are done using the VPC make sure to run
-```console
-terraform destroy
+```bash
+terraform destroy -var="skip_validation=true"
 ```
 To ensure you don't keep getting charged by AWS
 
