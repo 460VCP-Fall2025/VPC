@@ -23,7 +23,7 @@ resource "null_resource" "vpn_ec2_provisioning" {
   # Ensure the null_resource runs *after* the main EC2 instance is available
   depends_on = [
     aws_instance.vpn_ec2,
-    local_file.send_request_script
+    local_file.unix_send_request_script
   ]
 
   # All provisioners move here. You can reference aws_instance.vpn_ec2.public_ip
@@ -40,7 +40,7 @@ resource "null_resource" "vpn_ec2_provisioning" {
   }
 
   provisioner "file" {
-    source      = local_file.send_request_script.filename
+    source      = local_file.unix_send_request_script.filename
     destination = "/home/ubuntu/send_request.sh"
 
     connection {
@@ -97,7 +97,7 @@ resource "null_resource" "vpn_ec2_provisioning" {
 resource "aws_instance" "vpn_ec2" {
 
   depends_on = [
-    local_file.send_request_script // creating send_request.sh first 
+    local_file.unix_send_request_script // creating unix_send_request.sh first 
   ]
 
 

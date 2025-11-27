@@ -35,71 +35,65 @@ resource "aws_security_group" "vpn_sg" {
     Name = "vpn-ec2-sg"
   }
 }
-
-#------------------------------
-# SG for private instances (blue/green instances)
-#------------------------------
 resource "aws_security_group" "private_sg" {
   name        = "460VPC-private-sg"
-  description = "Allow traffic to/from NAT on any, and from VPN-EC2 on port 8080"
+  description = "Allow App traffic from VPC, SSH from VPN-EC2"
   vpc_id      = aws_vpc.main.id
 
-  # App port from public subnet
+  # 1. APPLICATION PORT (8080)
+  # This single rule covers:
+  # - Client (VPN-EC2) traffic via the NLB (due to Client IP Preservation).
+  # - NLB Health Check traffic.
+  # - Direct connections from any instance in the VPC.
   ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.vpn_sg.id]
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block] // 10.0.0.0/16
+    description = "Allow App Port from entire VPC"
   }
 
-  # App port from NLB subnets (for health checks)
+  # 2. VPN Client Traffic (10.8.0.0/24)
+  # KEEP this only if 10.8.0.0/24 is NOT contained within 10.0.0.0/16 (i.e., external VPN traffic)
+  # If 10.8.0.0/24 IS the VPN tunnel's address space, keep it separate for clarity.
   ingress {
-    from_port = 8080
-    to_port   = 8080
-    protocol  = "tcp"
-    cidr_blocks = [
-      aws_subnet.private_blue.cidr_block,
-      aws_subnet.private_green.cidr_block
-    ]
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["10.8.0.0/24"]  
+    description = "Allow HTTP from OpenVPN clients"
   }
 
-  ingress {
-  from_port   = 8080
-  to_port     = 8080
-  protocol    = "tcp"
-  cidr_blocks = ["10.8.0.0/24"]  # VPN clients
-  description = "Allow HTTP from OpenVPN clients"
-}
-
-  # SSH from VPN EC2 (for management)
+  # 3. MANAGEMENT (SSH and Ping)
+  # Traffic from the VPN-EC2 instance's Security Group (vpn_sg)
   ingress {
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"
     security_groups = [aws_security_group.vpn_sg.id]
+    description     = "SSH from VPN-EC2"
   }
 
-  # ping testing if vpn works
   ingress {
-    description     = "ICMP (ping)"
+    description     = "ICMP (ping) from VPN-EC2"
     from_port       = -1
     to_port         = -1
     protocol        = "icmp"
     security_groups = [aws_security_group.vpn_sg.id]
   }
 
-  # Outbound traffic to NAT instance for internet access
+  # 4. EGRESS (Outbound traffic for internet access via NAT)
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "All outbound traffic"
   }
 
   tags = {
     Name = "460VPC-private-sg"
   }
 }
-
 
 

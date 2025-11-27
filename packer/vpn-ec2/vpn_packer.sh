@@ -15,11 +15,9 @@ rm webclient.tar
 
 # Create directory structure
 mkdir -p ~/openvpn-config
-mkdir -p ~/webclient
 mkdir -p ~/ssh_commands
 
 # Move files to correct locations
-mv ~/webclient.py ~/webclient/
 mv ~/install_openvpn.sh ~/openvpn-config/
 mv ~/run_install_openvpn_script.sh ~/openvpn-config/
 
