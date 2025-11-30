@@ -38,7 +38,7 @@ resource "null_resource" "vpn_ec2_provisioning" {
     }
   }
 
-  # Installing vpn software and setting up the webclient.py run script
+# Installing vpn software and setting up the webclient.py run script
   provisioner "remote-exec" {
     connection {
       type        = "ssh"
@@ -52,27 +52,31 @@ resource "null_resource" "vpn_ec2_provisioning" {
       "chmod 600 /home/ubuntu/.ssh/id_rsa",
       "chmod +x /home/ubuntu/send_request.sh",
 
-      # BLUE instance check
-      <<EOF
+      # BLUE instance check - WRAPPED TO REMOVE \r (CRLF)
+      # The outer quotes ensure the entire block is treated as a single command string
+      "(",
+      <<EOT
       BLUE_IP="${try(aws_instance.blue[0].private_ip, "")}"
       if [ -z "$BLUE_IP" ]; then
         echo "BLUE instance is not running" > /home/ubuntu/commands_ssh/blue_ssh.sh
       else
         echo "ssh ubuntu@$BLUE_IP" > /home/ubuntu/commands_ssh/blue_ssh.sh
       fi
-      EOF
-      ,
+EOT
+      ," ) | tr -d '\r' | sh",
+      
 
-      # GREEN instance check
-      <<EOF
+      # GREEN instance check - WRAPPED TO REMOVE \r (CRLF)
+      "(",
+      <<EOT
       GREEN_IP="${try(aws_instance.green[0].private_ip, "")}"
       if [ -z "$GREEN_IP" ]; then
         echo "GREEN instance is not running" > /home/ubuntu/commands_ssh/green_ssh.sh
       else
         echo "ssh ubuntu@$GREEN_IP" > /home/ubuntu/commands_ssh/green_ssh.sh
       fi
-      EOF
-      ,
+EOT
+      ," ) | tr -d '\r' | sh",
     ]
   }
 }
