@@ -52,9 +52,9 @@ else
     exit 1
 fi
 
-
-#Clean up output when SSHing into instance
-echo "PrintLastLog no" >> /etc/ssh/sshd_config
+# Clean up output when SSHing into instance
+echo "PrintLastLog no" | sudo tee -a /etc/ssh/sshd_config >/dev/null
 sudo systemctl restart ssh
-sudo chmod -x /etc/update-motd.d/*
 
+# Disable MOTD scripts
+sudo chmod -x /etc/update-motd.d/*

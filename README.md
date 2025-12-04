@@ -3,13 +3,14 @@ By:
 [Yahya G.](https://www.linkedin.com/in/yahya-guler-ab498a282/)
 [Abdirahman H.](https://www.linkedin.com/in/abdirahman-hassan-9864ba2b2/)
 [Dustin M.](https://www.linkedin.com/in/dustin-marsh-a3101524a/)
-[Paul E.]()
+[Paul E.](https://www.linkedin.com/in/paulegbe/)
 
 
-## **Note**: The terrafrom code currently will only successfully run on Unix Operating Systems (MacOs, Linux) and not Windows. When this issue is resolved, an updated note will be written.
+### **Note**: The terrafrom code currently will only successfully run on Unix Operating Systems (MacOs, Linux) and not Windows. When this issue is resolved, an updated note will be written.
 
 ------------------------------------------
-![Diagram](ProjectDiagram.jpg)
+<img src="ProjectDiagram.jpg" width="100%">
+
 ### VPC Infrastructure
 **This VPC contains 3 subnets**:
 **1 public subnet and**
@@ -33,7 +34,8 @@ The NAT Gateway allows the private servers to access the internet under one publ
 We have 2 private servers to run blue green deployment, which allows a smooth transition to updated software or a second instance in case of a failure.
 A load balancer forwards traffic to the currently running private server.
 
-**Note** For the purposes of our project, we did not fully implement a Blue/Green deployment strategy. There is no option to rollback to previous versions. Instead, for simplicity's sake, all that is implemented is the switching between blue and green environments.
+**Note:** For the purposes of our project, we did not fully implement a Blue/Green deployment strategy. There is no option to rollback to previous versions. Instead, for simplicity's sake, all that is implemented is the switching between the blue and green environments.
+
 ------------------------------------------
 ### Running the VPC
 ### Step 1: Prerequisites
@@ -59,6 +61,11 @@ While in Users, add the ***AdministratorAccess*** Permissions policies.
 
 ------------------------------------------
 ### Step 2: Running the Packer Files
+
+***Packer Directory:***
+
+![Diagram](Screenshots/PackerDir.png)
+
 After that, navigate into the private-server and vpn-ec2 directories, which are both in the packer directory, and run
 
 ```console
@@ -68,9 +75,18 @@ packer init .
 packer build .
 ```
 
-**Note**: Estimated build time: 10 minutes
+***private-server-ami packer build output:***
 
-**Note**: you can open two terminals and run each packer file in parallel to speed up the process.
+<img src="Screenshots/PrivateAMI.png" width="50%">
+
+
+***vpn-ami packer build output:***
+
+<img src="Screenshots/VPNAMI.png" width="50%">
+
+**Note:** Estimated init + build time: 9 minutes 
+
+**Note:** you can open two terminals and run each packer file in parallel to speed up the process.
 
 ------------------------------------------
 ### Step 3: Running the Terraform files
@@ -90,13 +106,24 @@ terraform apply -var="enable_blue_env=false" -var="enable_green_env=true"
 ```
 type yes and once it finishes you'll be given commands to SSH into the VPN which can be used to SSH into the other instances, and the command to get the .ovpn key.
 
-**Note**: You must set one environment variable to true and the other environment variable to false. They cannot be both false or both true at the same time.
+***terraform apply output:***
+
+<img src="Screenshots/TerraformApply.png" width="80%">
+
+
+**Note:** You must set one environment variable to true and the other environment variable to false. They cannot be both false or both true at the same time.
 
 ------------------------------------------
 ### Step 4: Connecting to the VPC via OpenVPN
 After successfully applying the terraform files, the .opvn file from the vpn-ec2 instance should be copied onto your local machine into the terraform directory. 
 
 In your OpenVPN Client GUI, create a new profile by uploading that .opvn then click connect.
+
+***Successful OpenVPN Connection:***
+
+<img src="Screenshots/VPNConnection.png" width="20%">
+
+
 
 ------------------------------------------
 ### Step 5: Shutting down the VPC
@@ -105,5 +132,9 @@ Once you are done using the VPC, make sure to run
 terraform destroy -var="skip_validation=true"
 ```
 To ensure you don't keep getting charged by AWS
+
+***terraform destroy output:***
+
+<img src="Screenshots/TerraformDestroy.png" width="50%">
 
 --------------------------
