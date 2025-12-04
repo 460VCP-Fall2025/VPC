@@ -52,3 +52,9 @@ else
     exit 1
 fi
 
+
+#Clean up output when SSHing into instance
+echo "PrintLastLog no" >> /etc/ssh/sshd_config
+sudo systemctl restart ssh
+sudo chmod -x /etc/update-motd.d/*
+
