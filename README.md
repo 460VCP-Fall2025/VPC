@@ -64,7 +64,7 @@ While in Users, add the ***AdministratorAccess*** Permissions policies.
 
 ***Packer Directory:***
 
-![Diagram](Screenshots/PackerDir.png)
+<img src="Screenshots/PackerDir.png" width="30%">
 
 After that, navigate into the private-server and vpn-ec2 directories, which are both in the packer directory, and run
 
@@ -77,12 +77,12 @@ packer build .
 
 ***private-server-ami packer build output:***
 
-<img src="Screenshots/PrivateAMI.png" width="50%">
+<img src="Screenshots/PrivateAMI.png" width="80%">
 
 
 ***vpn-ami packer build output:***
 
-<img src="Screenshots/VPNAMI.png" width="50%">
+<img src="Screenshots/VPNAMI.png" width="60%">
 
 **Note:** Estimated init + build time: 9 minutes 
 
@@ -108,7 +108,7 @@ type yes and once it finishes you'll be given commands to SSH into the VPN which
 
 ***terraform apply output:***
 
-<img src="Screenshots/TerraformApply.png" width="80%">
+<img src="Screenshots/TerraformApply.png" width="100%">
 
 
 **Note:** You must set one environment variable to true and the other environment variable to false. They cannot be both false or both true at the same time.
@@ -121,7 +121,7 @@ In your OpenVPN Client GUI, create a new profile by uploading that .opvn then cl
 
 ***Successful OpenVPN Connection:***
 
-<img src="Screenshots/VPNConnection.png" width="20%">
+<img src="Screenshots/VPNConnection.png" width="40%">
 
 
 
@@ -135,6 +135,6 @@ To ensure you don't keep getting charged by AWS
 
 ***terraform destroy output:***
 
-<img src="Screenshots/TerraformDestroy.png" width="50%">
+<img src="Screenshots/TerraformDestroy.png" width="40%">
 
 --------------------------
