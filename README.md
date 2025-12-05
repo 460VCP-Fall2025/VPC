@@ -52,7 +52,7 @@ First, ensure you have correctly installed/set up the following:
 -[OpenVPN](https://openvpn.net/client)
 
 After installing AWS CLI, you will have to configure it by using 
-```console
+```bash
 aws configure
 ```
 You can get your keys in your IAM account in  
@@ -68,10 +68,10 @@ While in Users, add the ***AdministratorAccess*** Permissions policies.
 
 After that, navigate into the private-server and vpn-ec2 directories, which are both in the packer directory, and run
 
-```console
+```bash
 packer init .
 ```
-```console
+```bash
 packer build .
 ```
 
@@ -89,19 +89,19 @@ packer build .
 **Note:** you can open two terminals and run each packer file in parallel to speed up the process.
 
 ------------------------------------------
-### Step 3: Running the Terraform files
+### Step 3: Running the Terraform Files
 After that finished for both folders folder, you can navigate to the terraform directory and run
-```console
+```bash
 terraform init
 ```
 
 To set Blue environment on, run:
-```console
+```bash
  terraform apply -var="enable_blue_env=true" -var="enable_green_env=false"
 ```
 
 To set Green environment on, run:
-```console
+```bash
 terraform apply -var="enable_blue_env=false" -var="enable_green_env=true"
 ```
 type yes and once it finishes you'll be given commands to SSH into the VPN which can be used to SSH into the other instances, and the command to get the .ovpn key.
@@ -124,9 +124,48 @@ In your OpenVPN Client GUI, create a new profile by uploading that .opvn then cl
 <img src="Screenshots/VPNConnection.png" width="40%">
 
 
+------------------------------------------
+### Step 5: Run Test .py File
+
+After successful deployment of the files, the webclient directory should like this:
+
+<img src="Screenshots/WebclientDir.png" width="30%">
+
+To test the VPN Connection and the successful deployment of Blue/Green, navigate to the webclient directory, and run one of the .sh script files (whichever works on your machine). 
+
+Both .sh scripts run the same webclient.py file, which sends an http request over a TCP socket on port 8080 over to the Network Load Balancer, which then forwards the request to the private server that is currently running (Blue/Green). The private server should be running a server.py file that is accepting connections and ready to send responses. The response should differ depending on the environment that you set when terraform applying.
+
+The content of ***unix_send_request.sh***:
+
+```bash
+#!/usr/bin/env bash
+python3 webclient.py <nlb-dns-name> 8080 response.html
+```
+
+The content of ***win_send_request.sh***:
+
+```bash
+#!/usr/bin/env bash
+python webclient.py <nlb-dns-name> 8080 response.html
+```
+
+
+***Respone if Blue Environment is Running:***
+
+<img src="Screenshots/BlueResponse.png" width="40%">
+
+***Respone if Green Environment is Running:***
+
+<img src="Screenshots/GreenResponse.png" width="40%">
 
 ------------------------------------------
-### Step 5: Shutting down the VPC
+### Step 6: Disconnecting from the VPN
+
+Before proceeding to the next step, make sure to disconnect from the VPN in the OpenVPN Client. If you forget to do so, terraform destroy will not run properly. If you run terraform destroy before disconnecting from VPN, wait for the command to fail, disconnect from the VPN, and then run terraform destroy again and it should work properly.
+
+
+------------------------------------------
+### Step 7: Shutting Down the VPC
 Once you are done using the VPC, make sure to run
 ```bash
 terraform destroy -var="skip_validation=true"
